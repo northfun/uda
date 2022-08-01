@@ -23,6 +23,7 @@ import csv
 import os
 
 from absl import flags
+from utils import tokenization
 
 import tensorflow as tf
 
@@ -161,6 +162,43 @@ class IMDbProcessor(DataProcessor):
 
   def get_dev_size(self):
     return 25000
+
+
+class ChiProcessor(DataProcessor):
+  """ Processor for chinese multi-classes data set"""
+  def __init__(self):
+      self.labels = set()
+
+  def get_train_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+  def get_test_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+  def get_dev_examples(self, data_dir):
+    """See base class."""
+    return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
+
+  def get_labels(self, data_dir="app_data"):
+    lines = self._read_tsv(os.path.join(data_dir, "train.tsv"))
+    for line in lines:
+      label = tokenization.convert_to_unicode(line[1])
+      self.labels.add(label)
+    print(f'===={self.labels}')
+    return list(self.labels)
+
+  def _create_examples(self, lines, set_type):
+    examples = [] 
+    for (i, line) in enumerate(lines):
+      guid = "%s-%s" % (set_type, i)
+      text_a = tokenization.convert_to_unicode(line[0])
+      label = tokenization.convert_to_unicode(line[1])
+      self.labels.add(label)
+      examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+
+    return examples
 
 
 class TextClassProcessor(DataProcessor):
@@ -350,6 +388,7 @@ def get_processor(task_name):
       "yelp-5": YELP5Processor,
       "amazon-2": AMAZON2Processor,
       "amazon-5": AMAZON5Processor,
+      "chi":ChiProcessor,
   }
   processor = processors[task_name]()
   return processor
